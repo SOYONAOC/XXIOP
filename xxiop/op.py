@@ -43,16 +43,12 @@ class OpticalDepth(CosmologySet):
         self.ionf_interp = interp1d(z, ionf)
         self.ionf_interp_init = True
 
-    def IonFraction(self, z: np.ndarray):
+    def IonFraction(self, z: float):
         if self.ionf_interp_init == False:
             self.IonFraction_Init(self.z, self.ionf)
-        z = np.array(z)
-        z1 = z[z < self.z[0]]
-        zm = z[(z >= self.z[0]) & (z <= self.z[-1])]
-        z2 = z[z > self.z[-1]]
-        z1_out = np.ones(len(z1)) if len(z1) > 0 else np.array([])
-        z2_out = np.zeros(len(z2)) if len(z2) > 0 else np.array([])
-        return np.concatenate([z1_out,self.ionf_interp(zm),z2_out])
+        if z < self.z[0]: return 1.0
+        if z > self.z[-1]: return 0.0
+        else:return self.ionf_interp(z)
 
     def OpticalDepth_diff(self, z: float) -> float:
         Y = 0.25
