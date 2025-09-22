@@ -153,7 +153,7 @@ class XXIPowerSpectrum(CosmologySet):
 
 
     def XXIFandXXIP(self,z: float, deltaR: np.ndarray, ionf: np.ndarray, box_length: int,
-                    label: str = '21cm Field', percentage_number: float = 99,
+                    label: str = '21cm Field', percentage_number: float = 99,limit = None
                     ):
         DIM = deltaR.shape[0]
         XXI_field = self.XXI_Field(z, deltaR, ionf)
@@ -176,7 +176,10 @@ class XXIPowerSpectrum(CosmologySet):
 
         # 为21cm信号场设置颜色范围
         cmin_xxi = xxi_slice.min()
-        cmax_xxi = np.percentile(xxi_slice, percentage_number)
+        if limit == None:
+            cmax_xxi = np.percentile(xxi_slice, percentage_number)
+        else:
+            cmax_xxi = limit
         v_xxi = np.linspace(cmin_xxi, cmax_xxi, 21, endpoint=True)
 
 
