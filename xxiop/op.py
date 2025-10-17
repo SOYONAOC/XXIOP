@@ -153,7 +153,8 @@ class XXIPowerSpectrum(CosmologySet):
 
 
     def XXIFandXXIP(self,z: float, deltaR: np.ndarray, ionf: np.ndarray, box_length: int,
-                    label: str = '21cm Field', percentage_number: float = 99,limit = None
+                    label: str = '21cm Field', percentage_number: float = 99,limit = None,
+                    save_path: str = None
                     ):
         DIM = deltaR.shape[0]
         XXI_field = self.XXI_Field(z, deltaR, ionf)
@@ -213,7 +214,11 @@ class XXIPowerSpectrum(CosmologySet):
         # --- 5. 调整布局并显示 ---
         # 自动调整子图间距，防止标题和标签重叠
         plt.tight_layout(pad=1.5)
-        os.makedirs('figure_deltaTb', exist_ok=True)
-        plt.savefig(f'figure_deltaTb/ionization_and_21cm_z={z},percentile={percentage_number}.png')
+        if save_path is not None:
+            os.makedirs(save_path, exist_ok=True)
+            plt.savefig(save_path)
+        else:
+            os.makedirs('figure_deltaTb', exist_ok=True)
+            plt.savefig(f'figure_deltaTb/ionization_and_21cm_z={z},percentile={percentage_number}.png')
 
         return XXI_field
