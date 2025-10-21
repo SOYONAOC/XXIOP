@@ -53,7 +53,7 @@ class OpticalDepth(CosmologySet):
     def OpticalDepth_diff(self, z: float) -> float:
         Y = 0.25
         X = 0.75
-        eta = 2 if z <=4 else 1
+        eta = 2 if z <=3 else 1
         Hz = self.cosmo.Ez(z) * self.cosmo.H0u
         x_HII = self.IonFraction(z)
         return (c*(1+z)**2 /Hz * x_HII * self.nH* sigma_T*(1+eta*Y/(4*X))).to(u.dimensionless_unscaled).value
