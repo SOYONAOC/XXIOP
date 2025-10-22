@@ -36,6 +36,8 @@ class OpticalDepth(CosmologySet):
         self.ionf = np.array(ionf)
         self.cosmo = mf.SFRD(ns=ns, sigma8=sigma8, h=h, omegam=omegam)
         self.nH = self.cosmo.nHu
+        self.zmin = np.min(z)
+        self.zmax = np.max(z)
 
     def IonFraction_Init(self,z: np.ndarray, ionf: np.ndarray):
         z = np.array(z)
@@ -46,8 +48,8 @@ class OpticalDepth(CosmologySet):
     def IonFraction(self, z: float):
         if self.ionf_interp_init == False:
             self.IonFraction_Init(self.z, self.ionf)
-        if z < self.z[0]: return 1.0
-        if z > self.z[-1]: return 0.0
+        if z < self.zmin: return 1.0
+        if z > self.zmax: return 0.0
         else:return self.ionf_interp(z)
 
     def OpticalDepth_diff(self, z: float) -> float:
@@ -62,11 +64,12 @@ class OpticalDepth(CosmologySet):
         """
         Add the Integrate grid for better result
         """
-        zlist = np.linspace(0, z, 12)
-        ans = 0
+        inti = quad(self.OpticalDepth_diff, 0, 3)[0]
+        inti += quad(self.OpticalDepth_diff, 3, self.zmin)[0]
+        zlist = np.linspace(self.zmin, z, 20)
         for i in range(len(zlist)-1):
-            ans += quad(self.OpticalDepth_diff, zlist[i], zlist[i+1], epsrel=1e-7, limit=200)[0]
-        return ans
+            inti += quad(self.OpticalDepth_diff, zlist[i], zlist[i+1])[0]
+        return inti
 
 class XXIPowerSpectrum(CosmologySet):
     def __init__(self,h=0.674, omegam=0.315):
