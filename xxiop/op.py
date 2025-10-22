@@ -64,7 +64,11 @@ class OpticalDepth(CosmologySet):
         """
         Add the Integrate grid for better result
         """
+        if z < 3:
+            return quad(self.OpticalDepth_diff, 0, z)[0]
         inti = quad(self.OpticalDepth_diff, 0, 3)[0]
+        if z <= self.zmin:
+            return inti+ quad(self.OpticalDepth_diff, 3, z)[0]
         inti += quad(self.OpticalDepth_diff, 3, self.zmin)[0]
         zlist = np.linspace(self.zmin, z, 20)
         for i in range(len(zlist)-1):
