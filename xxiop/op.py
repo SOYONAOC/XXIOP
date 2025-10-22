@@ -4,6 +4,7 @@ import massfunc as mf
 from scipy.integrate import quad
 import numpy as np
 import astropy.units as u
+import pandas as pd
 from dataclasses import dataclass
 import matplotlib.pyplot as plt
 import os
@@ -29,51 +30,58 @@ class CosmologySet:
 
 class OpticalDepth(CosmologySet):
 
-    def __init__(self,z: np.ndarray, ionf: np.ndarray, ns=0.965, sigma8=0.811, h=0.674, omegam=0.315):
+    def __init__(self,file_path: str, ns=0.965, sigma8=0.811, h=0.674, omegam=0.315):
         super().__init__(h=h, omegam=omegam)
         self.ionf_interp_init = False
-        self.z = np.array(z)
-        self.ionf = np.array(ionf)
+        self.diff_set = False
+        self.df = pd.read_csv(file_path)
+        self.z = np.array(self.df['z'])
+        self.ionf = np.array(self.df['ionf'])
         self.cosmo = mf.SFRD(ns=ns, sigma8=sigma8, h=h, omegam=omegam)
         self.nH = self.cosmo.nHu
-        self.zmin = np.min(z)
-        self.zmax = np.max(z)
+    
+    def sortdata(self):
+        sorted_indices = np.argsort(self.z)
+        self.z = self.z[sorted_indices]
+        self.ionf = self.ionf[sorted_indices]
+        self.zmin = np.min(self.z)
+        self.zmax = np.max(self.z)
+        self.zdiff = np.linspace(0,self.zmax,100000)
 
-    def IonFraction_Init(self,z: np.ndarray, ionf: np.ndarray):
-        z = np.array(z)
-        ionf = np.array(ionf)
-        self.ionf_interp = interp1d(z, ionf)
+    def IonFraction_Init(self):
+        self.sortdata()
+        zbelow = np.linspace(0, self.zmin, 100, endpoint=False)
+        ionf_below = np.ones_like(zbelow)
+        z_interp = np.concatenate((zbelow, self.z))
+        ionf_interp = np.concatenate((ionf_below, self.ionf))
+        self.ionf_interp = interp1d(z_interp, ionf_interp, kind='cubic')
         self.ionf_interp_init = True
 
-    def IonFraction(self, z: float):
-        if self.ionf_interp_init == False:
-            self.IonFraction_Init(self.z, self.ionf)
-        if z < self.zmin: return 1.0
-        if z > self.zmax: return 0.0
-        else:return self.ionf_interp(z)
+    def ionfraction(self, z):
+        if not self.ionf_interp_init:
+            self.IonFraction_Init()
+        return self.ionf_interp(z)
 
-    def OpticalDepth_diff(self, z: float) -> float:
+    def OpticalDepth_diff(self) -> np.ndarray:
+        if not self.ionf_interp_init:
+            self.IonFraction_Init()
         Y = 0.25
         X = 0.75
-        eta = 2 if z <=3 else 1
-        Hz = self.cosmo.Ez(z) * self.cosmo.H0u
-        x_HII = self.IonFraction(z)
-        return (c*(1+z)**2 /Hz * x_HII * self.nH* sigma_T*(1+eta*Y/(4*X))).to(u.dimensionless_unscaled).value
-    
+        x_HII = self.ionfraction(self.zdiff)
+        eta = np.where(self.zdiff < 3, 2.0, 1.0)
+        Hz = self.cosmo.Ez(self.zdiff) * 100 * self.h
+        Hz_unit = self.cosmo.H0u.unit
+        param = ( c*self.nH*sigma_T/Hz_unit).to(u.dimensionless_unscaled).value
+        self.diff = param * (1+self.zdiff)**2/Hz * x_HII * (1+eta*Y/(4*X)) 
+        self.diff_set = True
+
     def OpticalDepth(self, z: float) -> float:
-        """
-        Add the Integrate grid for better result
-        """
-        if z < 3:
-            return quad(self.OpticalDepth_diff, 0, z)[0]
-        inti = quad(self.OpticalDepth_diff, 0, 3)[0]
-        if z <= self.zmin:
-            return inti+ quad(self.OpticalDepth_diff, 3, z)[0]
-        inti += quad(self.OpticalDepth_diff, 3, self.zmin)[0]
-        zlist = np.linspace(self.zmin, z, 20)
-        for i in range(len(zlist)-1):
-            inti += quad(self.OpticalDepth_diff, zlist[i], zlist[i+1])[0]
-        return inti
+        if not self.diff_set:
+            self.OpticalDepth_diff()
+        mask = self.zdiff <= z
+        x = self.zdiff[mask]
+        y = self.diff[mask]
+        return np.trapezoid(y, x)
 
 class XXIPowerSpectrum(CosmologySet):
     def __init__(self,h=0.674, omegam=0.315):
