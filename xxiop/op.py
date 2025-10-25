@@ -22,7 +22,7 @@ class CosmologySet:
         self.rhom = rhoc * self.omegam
         self.H0u = 100 * self.h * (u.km * u.s**-1 * u.Mpc**-1)
         self.mHu = 1.6726e-27 * u.kg                        # the mass of a hydrogen Unit: kg
-        self.X = 0.75                                       # the mass fraction of hydrogen
+        self.X = 0.752                                      # the mass fraction of hydrogen
         self.nHu = self.rhocrit.to(u.kg/u.cm**3) * self.omegab * self.X / self.mHu    # hydrogen density
         self.nH = self.nHu.value
         self.omegak = 0.0   
@@ -65,8 +65,8 @@ class OpticalDepth(CosmologySet):
     def OpticalDepth_diff(self) -> np.ndarray:
         if not self.ionf_interp_init:
             self.IonFraction_Init()
-        Y = 0.25
-        X = 0.75
+        Y = 0.248
+        X = 0.752
         x_HII = self.ionfraction(self.zdiff)
         eta = np.where(self.zdiff < 3, 2.0, 1.0)
         Hz = self.cosmo.Ez(self.zdiff) * 100 * self.h
